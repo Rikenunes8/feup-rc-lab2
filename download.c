@@ -16,6 +16,8 @@ struct args_t {
   char pass[100];
   char host[100];
   char path[100];
+  char ip[20];
+  int port;
 };
 
 int connect_socket(char* addr, int port) {
@@ -68,19 +70,18 @@ int hostname_to_IP(char* hostname, char* ip) {
 }
 
 int get_port(char* protocol) {
-  if      (strcmp(protocol, "ftp"))   return 21;
-  else if (strcmp(protocol, "ssh"))   return 22;
-  else if (strcmp(protocol, "smtp"))  return 25;
-  else if (strcmp(protocol, "http"))  return 80;
-  else if (strcmp(protocol, "pop3"))  return 110;
-  else                                return -1;
+  if      (strcmp(protocol, "ftp") == 0)  return 21;
+  else if (strcmp(protocol, "ssh") == 0)  return 22;
+  else if (strcmp(protocol, "smtp") == 0) return 25;
+  else if (strcmp(protocol, "http") == 0) return 80;
+  else if (strcmp(protocol, "pop3") == 0) return 110;
+  else                                    return -1;
 }
 
 int parse_args(struct args_t* args, int argc, char** argv) {
   if (argc != 2) {
     printf("Wrong number of arguments\n");
     printf("usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
-
     return -1;
   }
   
@@ -144,26 +145,108 @@ int parse_args(struct args_t* args, int argc, char** argv) {
     ptrJ++;
   }
   
+  args->port = get_port(args->protocol);
 
-  if (hasLogin && args->user == NULL && args->pass == NULL || args->host == NULL) {
+  if (hasLogin && args->user == NULL && args->pass == NULL || args->host == NULL || args->port < 0) {
     printf("Bad input\n");
-    printf("usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
     return -1;
   }
+
 
   printf("%s\n", args->protocol);
   printf("%s\n", args->user);
   printf("%s\n", args->pass);
   printf("%s\n", args->host);
   printf("%s\n", args->path);
+  printf("%d\n", args->port);
   return 0;
 }
 
 
+int ftp_send_cmd(int socket, char* cmd) {
+  int ret = write(socket, cmd, strlen(cmd));
+  if (ret < 0) {
+    printf("Fail to send cmd '%s'", cmd);
+    return -1;
+  }
+  return ret;
+}
+
+int ftp_recv_resp(int socket, char* buffer, int len) {
+  memset(buffer, 0, 1000);
+
+  int ret = read(socket, buffer, len);
+  printf("%s", buffer);
+
+  return 0;
+}
+
 int main(int argc, char** argv) {
-  struct args_t args = {"", "", "", "", ""};
-  parse_args(&args, argc, argv);
+  struct args_t args = {"", "", "", "", "", -1};
+  if (parse_args(&args, argc, argv) < 0) {
+    printf("usage: download ftp://[<user>:<password>@]<host>/<url-path>\n");
+    return -1;
+  }
+
+  if (strlen(args.user) == 0 && strlen(args.pass) == 0) {
+    strcpy(args.user, "anonymous");
+    strcpy(args.pass, "anonymous");
+  }
+
+  char cmd[200];
+  char res[1000];
+
+  hostname_to_IP(args.host, args.ip);
+
+  int term_A = connect_socket(args.ip, args.port);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+
 
   
+  sprintf(cmd, "USER %s\r\n", args.user);
+  printf("\ncmd: %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  ftp_recv_resp(term_A, res, 1000);
+  
+  sprintf(cmd, "PASS %s\r\n", args.user);
+  printf("\ncmd: %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  ftp_recv_resp(term_A, res, 1000);
+
+  sprintf(cmd, "PASV\r\n");
+  printf("\ncmd: %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  ftp_recv_resp(term_A, res, 1000);
+
+  int a, b, c, d, pa, pb;
+  char* find = strchr(res, '(');
+  char ip_host[32];
+  int port;
+	sscanf(find, "(%d,%d,%d,%d,%d,%d)", &a, &b, &c, &d, &pa, &pb);
+	sprintf(ip_host, "%d.%d.%d.%d", a, b, c, d);
+  port = 256*pa + pb;
+
+  int term_B = connect_socket(ip_host, port);
+  
+  sprintf(cmd, "RETR %s\r\n", args.path);
+  printf("\ncmd: %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, 1000);
+
+  // ftp_recv_resp(term_B, res, 1000);
+
+  disconnect_socket(term_A);
+  disconnect_socket(term_B);
+
   
 }
