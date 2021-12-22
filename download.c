@@ -165,7 +165,7 @@ int hostname_to_IP(char* hostname, char* ip) {
 
 
 int ftp_send_cmd(int socket, char* cmd) {
-  int ret = write(socket, cmd, strlen(cmd));
+  int ret = send(socket, cmd, strlen(cmd), 0);
   if (ret < 0) {
     printf("Fail to send cmd '%s'", cmd);
     return -1;
@@ -176,7 +176,7 @@ int ftp_send_cmd(int socket, char* cmd) {
 int ftp_recv_resp(int socket, char* buffer, int len) {
   memset(buffer, 0, 1000);
 
-  int ret = read(socket, buffer, len);
+  int ret = recv(socket, buffer, len, 0);
   printf("%s", buffer);
 
   return 0;
