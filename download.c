@@ -20,54 +20,6 @@ struct args_t {
   int port;
 };
 
-int connect_socket(char* addr, int port) {
-  int sockfd;
-  struct sockaddr_in server_addr;
-  size_t bytes;
-
-  /*server address handling*/
-  bzero((char *) &server_addr, sizeof(server_addr));
-  server_addr.sin_family = AF_INET;
-  server_addr.sin_addr.s_addr = inet_addr(addr);    /*32 bit Internet address network byte ordered*/
-  server_addr.sin_port = htons(port);        /*server TCP port must be network byte ordered */
-
-  /*open a TCP socket*/
-  sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd < 0) {
-    perror("socket()");
-    exit(-1);
-  }
-  /*connect to the server*/
-  int res = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
-  if (res < 0) {
-    perror("connect()");
-    exit(-1);
-  }
-  return sockfd;
-}
-
-int disconnect_socket(int sockfd) {
-  if (close(sockfd)<0) {
-    perror("close()");
-    exit(-1);
-  }
-  return 0;
-}
-
-int hostname_to_IP(char* hostname, char* ip) {
-  struct hostent *h;
-  h = gethostbyname(hostname);
-  if (h == NULL) {
-    herror("gethostbyname()");
-    exit(-1);
-  }
-  strcpy(ip, inet_ntoa(*((struct in_addr *) h->h_addr)));
-
-  printf("Host name  : %s\n", h->h_name);
-  printf("IP Address : %s\n", ip);
-
-  return 0;
-}
 
 int get_port(char* protocol) {
   if      (strcmp(protocol, "ftp") == 0)  return 21;
@@ -162,6 +114,55 @@ int parse_args(struct args_t* args, int argc, char** argv) {
   return 0;
 }
 
+int connect_socket(char* addr, int port) {
+  int sockfd;
+  struct sockaddr_in server_addr;
+  size_t bytes;
+
+  /*server address handling*/
+  bzero((char *) &server_addr, sizeof(server_addr));
+  server_addr.sin_family = AF_INET;
+  server_addr.sin_addr.s_addr = inet_addr(addr);    /*32 bit Internet address network byte ordered*/
+  server_addr.sin_port = htons(port);        /*server TCP port must be network byte ordered */
+
+  /*open a TCP socket*/
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+  if (sockfd < 0) {
+    perror("socket()");
+    exit(-1);
+  }
+  /*connect to the server*/
+  int res = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
+  if (res < 0) {
+    perror("connect()");
+    exit(-1);
+  }
+  return sockfd;
+}
+
+int disconnect_socket(int sockfd) {
+  if (close(sockfd)<0) {
+    perror("close()");
+    exit(-1);
+  }
+  return 0;
+}
+
+int hostname_to_IP(char* hostname, char* ip) {
+  struct hostent *h;
+  h = gethostbyname(hostname);
+  if (h == NULL) {
+    herror("gethostbyname()");
+    exit(-1);
+  }
+  strcpy(ip, inet_ntoa(*((struct in_addr *) h->h_addr)));
+
+  printf("Host name  : %s\n", h->h_name);
+  printf("IP Address : %s\n", ip);
+
+  return 0;
+}
+
 
 int ftp_send_cmd(int socket, char* cmd) {
   int ret = write(socket, cmd, strlen(cmd));
@@ -228,10 +229,10 @@ int main(int argc, char** argv) {
   ftp_recv_resp(term_A, res, 1000);
 
   int a, b, c, d, pa, pb;
-  char* find = strchr(res, '(');
+  char* start = strchr(res, '(');
   char ip_host[32];
   int port;
-	sscanf(find, "(%d,%d,%d,%d,%d,%d)", &a, &b, &c, &d, &pa, &pb);
+	sscanf(start, "(%d,%d,%d,%d,%d,%d)", &a, &b, &c, &d, &pa, &pb);
 	sprintf(ip_host, "%d.%d.%d.%d", a, b, c, d);
   port = 256*pa + pb;
 
