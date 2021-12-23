@@ -174,12 +174,25 @@ int ftp_send_cmd(int socket, char* cmd) {
 }
 
 int ftp_recv_resp(int socket, char* buffer, int len) {
+  char code[3];
   memset(buffer, 0, 1000);
-
-  int ret = recv(socket, buffer, len, 0);
+  memset(code, 0, 3);
+  int off = 0;
+  while (true) {
+    int ret = recv(socket, &buffer[off], len-off, 0);
+    if (ret > 3 && buffer[off+3] != '-' || ret == 3) {
+      strncpy(code, &buffer[off], 3);
+      break;
+    }
+    else if (ret < 0) {
+      printf("Fail to recv from socket\n");
+      return -1;
+    }
+    off += ret;
+  }
   printf("%s", buffer);
 
-  return 0;
+  return atoi(code);
 }
 
 int main(int argc, char** argv) {
@@ -201,17 +214,6 @@ int main(int argc, char** argv) {
 
   int term_A = connect_socket(args.ip, args.port);
   ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
-
-
   
   sprintf(cmd, "USER %s\r\n", args.user);
   printf("\ncmd: %s\n", cmd);
@@ -244,7 +246,7 @@ int main(int argc, char** argv) {
   ftp_recv_resp(term_A, res, 1000);
   ftp_recv_resp(term_A, res, 1000);
 
-  // ftp_recv_resp(term_B, res, 1000);
+  ftp_recv_resp(term_B, res, 1000);
 
   disconnect_socket(term_A);
   disconnect_socket(term_B);
