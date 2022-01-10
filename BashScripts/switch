@@ -1,0 +1,90 @@
+#!/bin/bash;
+
+# Access using serial port
+# /dev/ttyS0 in tux13
+# use gtkterm
+
+# Access using ssh or telnet
+# IP address of switch: 172.16.1.10
+# Username root, password see at the lab
+
+# ----- STEP 2 -----
+# create VLAN10
+configure terminal
+vlan 10
+end
+show vlan id 10
+
+# add port 1 to VLAN10
+configure terminal
+interface fastethernet 0/1             # (x/y ;  x é o bloco, como só há um , o bloco é 0; y é o port mostrado no switch)
+switchport mode access
+switchport access vlan 10
+end
+show running-config interface fastethernet 0/1
+show interfaces fastethernet 0/1 switchport
+
+# add port 2 to VLAN10
+configure terminal
+interface fastethernet 0/2
+switchport mode access
+switchport access vlan 10
+end
+# show running-config interface fastethernet 0/2
+# show interfaces fastethernet 0/2 switchport
+# ------------------
+
+# ----- STEP 3 -----
+# create VLAN11
+configure terminal
+vlan 11
+end
+show vlan id 11
+
+# add port 3 to VLAN11
+configure terminal
+interface fastethernet 0/3
+switchport mode access
+switchport access vlan 11
+end
+show running-config interface fastethernet 0/3
+show interfaces fastethernet 0/3 switchport
+# ------------------
+
+# ---- STEP 5 -----
+# tux13 ping tux14
+ping 172.16.10.254
+
+# tux13 ping tux12
+ping 172.16.11.1
+# -----------------
+
+# ---- STEP 7 -----
+# Start new captures in eth0 of tuxy3, eth0 of tuxy4 and eth0 of tuxy2.
+
+# ---- STEP 8 -----
+# tux13 ping broadcast
+# echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+ping -b 172.16.10.255
+
+# ---- STEP 9 ----
+# tux13 ping broadcast
+ping -b 172.16.11.255
+
+
+
+
+# Deleting VLAN 10
+# configure terminal
+# no vlan 10
+# end
+# show vlan brief
+
+# Resetting the switch
+# configure terminal
+# no vlan 2-4094
+# exit
+# copy flash:tuxy-clean startup-config
+# reload
+
+

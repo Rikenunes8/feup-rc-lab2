@@ -1,0 +1,15 @@
+#!/bin/bash;
+
+# ---- net-tools -----
+ifconfig eth0 up
+ifconfig eth0 172.16.11.1/24
+ifconfig eth0 
+
+
+
+
+
+# ---- iproute2 -----
+#ip link set dev eth0 up 		# ip link set up eth0
+#ip addr add 172.16.11.1/24 dev eth0	
+#ip addr show dev eth0
