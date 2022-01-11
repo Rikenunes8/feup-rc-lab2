@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 
 
 struct args_t {
@@ -16,6 +17,7 @@ struct args_t {
   char pass[100];
   char host[100];
   char path[100];
+  char filename[30];
   char ip[20];
   int port;
 };
@@ -39,7 +41,7 @@ int parse_args(struct args_t* args, int argc, char** argv) {
   
   char* ptrI = argv[1];
   char* ptrJ = argv[1];
-  const char* endPtr = argv[1]+strlen(argv[1]);
+  char* endPtr = argv[1]+strlen(argv[1]);
   int size;
   int state = 0;
 
@@ -104,12 +106,19 @@ int parse_args(struct args_t* args, int argc, char** argv) {
     return -1;
   }
 
+  if (args->path != NULL) {
+    char* ptr = endPtr-1;
+    while (*(ptr--) != '/');
+    strncpy(args->filename, ptr+2, endPtr-ptr-2);
+  }
+
 
   printf("%s\n", args->protocol);
   printf("%s\n", args->user);
   printf("%s\n", args->pass);
   printf("%s\n", args->host);
   printf("%s\n", args->path);
+  printf("%s\n", args->filename);
   printf("%d\n", args->port);
   return 0;
 }
@@ -175,10 +184,10 @@ int ftp_send_cmd(int socket, char* cmd) {
 
 int ftp_recv_resp(int socket, char* buffer, int len) {
   char code[3];
-  memset(buffer, 0, 1000);
+  memset(buffer, 0, len);
   memset(code, 0, 3);
   int off = 0;
-  while (true) {
+  while (len != off) {
     int ret = recv(socket, &buffer[off], len-off, 0);
     if (ret > 3 && buffer[off+3] != '-' || ret == 3) {
       strncpy(code, &buffer[off], 3);
@@ -193,6 +202,24 @@ int ftp_recv_resp(int socket, char* buffer, int len) {
   printf("%s", buffer);
 
   return atoi(code);
+}
+
+
+void download_file(int socket, char* filename, char* buffer, int len) {
+  int fd = open(filename, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO );
+  while (true) {
+    memset(buffer, 0, len);
+    int ret = recv(socket, buffer, len, 0);
+    if (ret < 0) {
+      printf("Fail to recv from socket\n");
+      return;
+    }
+    write(fd, buffer, ret);
+    if (ret != len) {
+     break;
+    }
+  }
+  close(fd);
 }
 
 int main(int argc, char** argv) {
@@ -225,6 +252,11 @@ int main(int argc, char** argv) {
   ftp_send_cmd(term_A, cmd);
   ftp_recv_resp(term_A, res, 1000);
 
+  sprintf(cmd, "TYPE I\r\n");
+  printf("\ncmd: %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  ftp_recv_resp(term_A, res, 1000);
+
   sprintf(cmd, "PASV\r\n");
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
@@ -246,7 +278,7 @@ int main(int argc, char** argv) {
   ftp_recv_resp(term_A, res, 1000);
   ftp_recv_resp(term_A, res, 1000);
 
-  ftp_recv_resp(term_B, res, 1000);
+  download_file(term_B, args.filename, res, 1000);
 
   disconnect_socket(term_A);
   disconnect_socket(term_B);
