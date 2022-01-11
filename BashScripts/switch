@@ -17,16 +17,16 @@ show vlan id 10
 
 # add port 1 to VLAN10
 configure terminal
-interface fastethernet 0/1             # (x/y ;  x é o bloco, como só há um , o bloco é 0; y é o port mostrado no switch)
+interface fastethernet 0/1  # tux13 eth0
 switchport mode access
 switchport access vlan 10
 end
-show running-config interface fastethernet 0/1
-show interfaces fastethernet 0/1 switchport
+# show running-config interface fastethernet 0/1
+# show interfaces fastethernet 0/1 switchport
 
 # add port 2 to VLAN10
 configure terminal
-interface fastethernet 0/2
+interface fastethernet 0/2  # tux14 eth0
 switchport mode access
 switchport access vlan 10
 end
@@ -43,13 +43,37 @@ show vlan id 11
 
 # add port 3 to VLAN11
 configure terminal
-interface fastethernet 0/3
+interface fastethernet 0/3  # tux12 eth0
 switchport mode access
 switchport access vlan 11
 end
-show running-config interface fastethernet 0/3
-show interfaces fastethernet 0/3 switchport
+# show running-config interface fastethernet 0/3
+# show interfaces fastethernet 0/3 switchport
+
+# add port 4 to VLAN11
+configure terminal
+interface fastethernet 0/4  # tux14 eth1
+switchport mode access
+switchport access vlan 11
+end
+# show running-config interface fastethernet 0/4
+# show interfaces fastethernet 0/4 switchport
+
+# add port 5 to VLAN11
+configure terminal
+interface fastethernet 0/5  # cisco ge0
+switchport mode access
+switchport access vlan 11
+end
+# show running-config interface fastethernet 0/5
+# show interfaces fastethernet 0/5 switchport
 # ------------------
+
+
+
+
+
+
 
 # ---- STEP 5 -----
 # tux13 ping tux14

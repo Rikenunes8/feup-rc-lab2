@@ -5,6 +5,8 @@ ifconfig eth0 up
 ifconfig eth0 172.16.11.1/24
 ifconfig eth0 
 
+route add -net 172.16.10.0/24 gw 172.16.11.253
+
 
 
 
@@ -13,3 +15,5 @@ ifconfig eth0
 #ip link set dev eth0 up 		# ip link set up eth0
 #ip addr add 172.16.11.1/24 dev eth0	
 #ip addr show dev eth0
+
+# ip route add 172.16.10.0/24 via 172.16.11.253;

@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 
+#define MAX_CMD_SIZE  128
+#define MAX_RESP_SIZE 1024
 
 struct args_t {
   char protocol[100];
@@ -205,19 +207,18 @@ int ftp_recv_resp(int socket, char* buffer, int len) {
 }
 
 
-void download_file(int socket, char* filename, char* buffer, int len) {
+void download_file(int socket, char* filename) {
   int fd = open(filename, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO );
+  char buf[1];
   while (true) {
-    memset(buffer, 0, len);
-    int ret = recv(socket, buffer, len, 0);
+    int ret = recv(socket, buf, 1, 0);
     if (ret < 0) {
       printf("Fail to recv from socket\n");
       return;
-    }
-    write(fd, buffer, ret);
-    if (ret != len) {
+    } else if (ret == 0) {
      break;
     }
+    write(fd, buf, ret);
   }
   close(fd);
 }
@@ -234,33 +235,33 @@ int main(int argc, char** argv) {
     strcpy(args.pass, "anonymous");
   }
 
-  char cmd[200];
-  char res[1000];
+  char cmd[MAX_CMD_SIZE];
+  char res[MAX_RESP_SIZE];
 
   hostname_to_IP(args.host, args.ip);
 
   int term_A = connect_socket(args.ip, args.port);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
   
   sprintf(cmd, "USER %s\r\n", args.user);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
   
   sprintf(cmd, "PASS %s\r\n", args.user);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
 
   sprintf(cmd, "TYPE I\r\n");
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
 
   sprintf(cmd, "PASV\r\n");
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
 
   int a, b, c, d, pa, pb;
   char* start = strchr(res, '(');
@@ -275,10 +276,10 @@ int main(int argc, char** argv) {
   sprintf(cmd, "RETR %s\r\n", args.path);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, 1000);
-  ftp_recv_resp(term_A, res, 1000);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
+  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
 
-  download_file(term_B, args.filename, res, 1000);
+  download_file(term_B, args.filename);
 
   disconnect_socket(term_A);
   disconnect_socket(term_B);

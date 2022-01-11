@@ -2,7 +2,17 @@
 ifconfig eth0 up;
 ifconfig eth0 172.16.10.254/24;
 ifconfig eth0;
-ping 172.16.10.1
+ping 172.16.10.1;
+
+ifconfig eth1 up;
+ifconfig eth1 172.16.11.253/24;
+ifconfig eth1;
+
+echo 1 > /proc/sys/net/ipv4/ip_forward;
+echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts;
+
+
+
 
 
 # ---- iproute2 -----
@@ -10,3 +20,7 @@ ping 172.16.10.1
 #ip addr add 172.16.10.254/24 dev eth0	
 #ip addr show dev eth0
 #ping 172.16.10.1
+
+#ip link set dev eth1 up 		# ip link set up eth1
+#ip addr add 172.16.11.253/24 dev eth1	
+#ip addr show dev eth1
