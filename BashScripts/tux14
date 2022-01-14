@@ -2,7 +2,7 @@
 ifconfig eth0 up;
 ifconfig eth0 172.16.10.254/24;
 ifconfig eth0;
-ping 172.16.10.1;
+# ping 172.16.10.1;
 
 ifconfig eth1 up;
 ifconfig eth1 172.16.11.253/24;

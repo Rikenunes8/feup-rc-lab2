@@ -54,14 +54,14 @@ interface FastEthernet0/0
  speed auto
 !
 interface FastEthernet0/1
- ip address 172.16.1.19 255.255.255.0
+ ip address 172.16.2.19 255.255.255.0
  ip nat outside
  ip virtual-reassembly
  duplex auto
  speed auto
 !
 ip forward-protocol nd
-ip route 0.0.0.0 0.0.0.0 172.16.1.254
+ip route 0.0.0.0 0.0.0.0 172.16.2.254
 ip route 172.16.10.0 255.255.255.0 172.16.11.253
 ip http server
 ip http access-class 23
@@ -70,7 +70,7 @@ ip http secure-server
 ip http timeout-policy idle 60 life 86400 requests 10000
 !
 !
-ip nat pool ovrld 172.16.1.19 172.16.1.19 prefix-length 24
+ip nat pool ovrld 172.16.2.19 172.16.2.19 prefix-length 24
 ip nat inside source list 1 pool ovrld overload
 !
 access-list 1 permit 172.16.10.0 0.0.0.7

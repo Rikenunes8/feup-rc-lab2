@@ -17,7 +17,7 @@ show vlan id 10
 
 # add port 1 to VLAN10
 configure terminal
-interface fastethernet 0/1  # tux13 eth0
+interface fastethernet 0/3  # tux13 eth0
 switchport mode access
 switchport access vlan 10
 end
@@ -26,7 +26,7 @@ end
 
 # add port 2 to VLAN10
 configure terminal
-interface fastethernet 0/2  # tux14 eth0
+interface fastethernet 0/4  # tux14 eth0
 switchport mode access
 switchport access vlan 10
 end
@@ -43,7 +43,7 @@ show vlan id 11
 
 # add port 3 to VLAN11
 configure terminal
-interface fastethernet 0/3  # tux12 eth0
+interface fastethernet 0/5  # tux12 eth0
 switchport mode access
 switchport access vlan 11
 end
@@ -52,7 +52,7 @@ end
 
 # add port 4 to VLAN11
 configure terminal
-interface fastethernet 0/4  # tux14 eth1
+interface fastethernet 0/6  # tux14 eth1
 switchport mode access
 switchport access vlan 11
 end
@@ -61,7 +61,7 @@ end
 
 # add port 5 to VLAN11
 configure terminal
-interface fastethernet 0/5  # cisco ge0
+interface fastethernet 0/7  # cisco ge0
 switchport mode access
 switchport access vlan 11
 end
@@ -77,10 +77,10 @@ end
 
 # ---- STEP 5 -----
 # tux13 ping tux14
-ping 172.16.10.254
+# ping 172.16.10.254
 
 # tux13 ping tux12
-ping 172.16.11.1
+# ping 172.16.11.1
 # -----------------
 
 # ---- STEP 7 -----
@@ -89,11 +89,11 @@ ping 172.16.11.1
 # ---- STEP 8 -----
 # tux13 ping broadcast
 # echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
-ping -b 172.16.10.255
+# ping -b 172.16.10.255
 
 # ---- STEP 9 ----
 # tux13 ping broadcast
-ping -b 172.16.11.255
+# ping -b 172.16.11.255
 
 
 
