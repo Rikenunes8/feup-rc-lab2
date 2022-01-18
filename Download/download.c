@@ -13,6 +13,13 @@
 #define MAX_CMD_SIZE  128
 #define MAX_RESP_SIZE 1024
 
+#define RESP_WELCOME    220
+#define RESP_SPEC_PASS  331
+#define RESP_SUC_LOGIN  230
+#define RESP_PASV_MODE  227
+#define RESP_BIN_MODE   150
+#define RESP_TRSF_COMP  226
+
 struct args_t {
   char protocol[100];
   char user[100];
@@ -114,14 +121,6 @@ int parse_args(struct args_t* args, int argc, char** argv) {
     strncpy(args->filename, ptr+2, endPtr-ptr-2);
   }
 
-
-  printf("%s\n", args->protocol);
-  printf("%s\n", args->user);
-  printf("%s\n", args->pass);
-  printf("%s\n", args->host);
-  printf("%s\n", args->path);
-  printf("%s\n", args->filename);
-  printf("%d\n", args->port);
   return 0;
 }
 
@@ -169,7 +168,7 @@ int hostname_to_IP(char* hostname, char* ip) {
   strcpy(ip, inet_ntoa(*((struct in_addr *) h->h_addr)));
 
   printf("Host name  : %s\n", h->h_name);
-  printf("IP Address : %s\n", ip);
+  printf("IP Address : %s\n\n", ip);
 
   return 0;
 }
@@ -237,31 +236,39 @@ int main(int argc, char** argv) {
 
   char cmd[MAX_CMD_SIZE];
   char res[MAX_RESP_SIZE];
+  int response;
 
   hostname_to_IP(args.host, args.ip);
 
   int term_A = connect_socket(args.ip, args.port);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
-  
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_WELCOME) {
+    fprintf(stderr, "Error on connection\n");
+    return -1;
+  }
+
   sprintf(cmd, "USER %s\r\n", args.user);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
-  
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SPEC_PASS) {
+    fprintf(stderr, "Error setting User\n");
+    return -1;
+  }
+
   sprintf(cmd, "PASS %s\r\n", args.user);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
-
-  sprintf(cmd, "TYPE I\r\n");
-  printf("\ncmd: %s\n", cmd);
-  ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SUC_LOGIN) {
+    fprintf(stderr, "Error setting Pass\n");
+    return -1;
+  }
 
   sprintf(cmd, "PASV\r\n");
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_PASV_MODE) {
+    fprintf(stderr, "Error entering pasv mode\n");
+    return -1;
+  }
 
   int a, b, c, d, pa, pb;
   char* start = strchr(res, '(');
@@ -276,13 +283,17 @@ int main(int argc, char** argv) {
   sprintf(cmd, "RETR %s\r\n", args.path);
   printf("\ncmd: %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
-  ftp_recv_resp(term_A, res, MAX_RESP_SIZE);
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_BIN_MODE) {
+    fprintf(stderr, "Error opening BINARY mode data connection\n");
+    return -1;
+  }
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_TRSF_COMP) {
+    fprintf(stderr, "Error completing transfer\n");
+    return -1;
+  }
 
   download_file(term_B, args.filename);
 
   disconnect_socket(term_A);
   disconnect_socket(term_B);
-
-  
 }

@@ -1,0 +1,7 @@
+./download ftp://ftp.up.pt/pub/kodi/timestamp.txt
+./download ftp://ftp.up.pt/pub/gnu/GNUinfo/Audio/index.txt
+./download ftp://netlab1.fe.up.pt/pub.txt
+./download ftp://rcom:rcom@netlab1.fe.up.pt/pipe.txt       
+./download ftp://rcom:rcom@netlab1.fe.up.pt/files/pic1.jpg
+./download ftp://rcom:rcom@netlab1.fe.up.pt/files/pic2.png
+./download ftp://rcom:rcom@netlab1.fe.up.pt/files/crab.mp4
