@@ -9,28 +9,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <fcntl.h>
-
-#define MAX_CMD_SIZE  128
-#define MAX_RESP_SIZE 1024
-
-#define RESP_WELCOME    220
-#define RESP_SPEC_PASS  331
-#define RESP_SUC_LOGIN  230
-#define RESP_PASV_MODE  227
-#define RESP_BIN_MODE   150
-#define RESP_TRSF_COMP  226
-
-struct args_t {
-  char protocol[100];
-  char user[100];
-  char pass[100];
-  char host[100];
-  char path[100];
-  char filename[30];
-  char ip[20];
-  int port;
-};
-
+#include "download.h"
 
 int get_port(char* protocol) {
   if      (strcmp(protocol, "ftp") == 0)  return 21;
@@ -114,6 +93,10 @@ int parse_args(struct args_t* args, int argc, char** argv) {
     printf("Bad input\n");
     return -1;
   }
+  if (args->port != 21) {
+    printf("Use of protocol '%s' is not allowed", args->protocol);
+    return -1;
+  }
 
   if (args->path != NULL) {
     char* ptr = endPtr-1;
@@ -121,6 +104,19 @@ int parse_args(struct args_t* args, int argc, char** argv) {
     strncpy(args->filename, ptr+2, endPtr-ptr-2);
   }
 
+  if (strlen(args.user) == 0 && strlen(args.pass) == 0) {
+    strcpy(args.user, "anonymous");
+    strcpy(args.pass, "anonymous");
+  }
+
+  printf("Protocol: %s\n", args->protocol);
+  printf("User:     %s\n", args->user);
+  printf("Pass:     %s\n", args->pass);
+  printf("Host:     %s\n", args->host);
+  printf("Path:     %s\n", args->path);
+  printf("Filename: %s\n", args->filename);
+  printf("Port:     %d\n", args->port);
+  
   return 0;
 }
 
@@ -229,17 +225,12 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  if (strlen(args.user) == 0 && strlen(args.pass) == 0) {
-    strcpy(args.user, "anonymous");
-    strcpy(args.pass, "anonymous");
-  }
-
   char cmd[MAX_CMD_SIZE];
   char res[MAX_RESP_SIZE];
-  int response;
 
   hostname_to_IP(args.host, args.ip);
-
+  
+  printf("\nConnecting to control Socket\n");
   int term_A = connect_socket(args.ip, args.port);
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_WELCOME) {
     fprintf(stderr, "Error on connection\n");
@@ -247,24 +238,27 @@ int main(int argc, char** argv) {
   }
 
   sprintf(cmd, "USER %s\r\n", args.user);
-  printf("\ncmd: %s\n", cmd);
+  printf("\nSending to control Socket...\n %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
+  printf("\nReceiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SPEC_PASS) {
     fprintf(stderr, "Error setting User\n");
     return -1;
   }
 
   sprintf(cmd, "PASS %s\r\n", args.user);
-  printf("\ncmd: %s\n", cmd);
+  printf("\nSending to control Socket...\n %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
+  printf("\nReceiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SUC_LOGIN) {
     fprintf(stderr, "Error setting Pass\n");
     return -1;
   }
 
   sprintf(cmd, "PASV\r\n");
-  printf("\ncmd: %s\n", cmd);
+  printf("\nSending to control Socket...\n %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
+  printf("\nReceiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_PASV_MODE) {
     fprintf(stderr, "Error entering pasv mode\n");
     return -1;
@@ -278,11 +272,13 @@ int main(int argc, char** argv) {
 	sprintf(ip_host, "%d.%d.%d.%d", a, b, c, d);
   port = 256*pa + pb;
 
+  printf("\nConnecting to data Socket on port: %d\n", port);
   int term_B = connect_socket(ip_host, port);
   
   sprintf(cmd, "RETR %s\r\n", args.path);
-  printf("\ncmd: %s\n", cmd);
+  printf("\nSending to control Socket...\n %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
+  printf("\nReceiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_BIN_MODE) {
     fprintf(stderr, "Error opening BINARY mode data connection\n");
     return -1;
