@@ -186,13 +186,17 @@ int ftp_recv_resp(int socket, char* buffer, int len) {
   int off = 0;
   while (len != off) {
     int ret = recv(socket, &buffer[off], len-off, 0);
-    if (ret > 3 && buffer[off+3] != '-' || ret == 3) {
-      strncpy(code, &buffer[off], 3);
-      break;
-    }
-    else if (ret < 0) {
+    if (ret < 0) {
       printf("Fail to recv from socket\n");
       return -1;
+    }
+    else if (ret > 3) {
+      if (off == 0 ) {
+        strncpy(code, buffer, 3);
+      }
+      else if (strncmp(buffer, &buffer[off], 3) == 0 && buffer[off+3] == ' ') {
+        break;
+      }
     }
     off += ret;
   }
