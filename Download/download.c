@@ -89,7 +89,7 @@ int parse_args(struct args_t* args, int argc, char** argv) {
   
   args->port = get_port(args->protocol);
 
-  if (hasLogin && args->user == NULL && args->pass == NULL || args->host == NULL || args->port < 0) {
+  if (hasLogin && args->user == NULL && args->pass == NULL || args->host == NULL || args->port < 0 || strlen(args->path) == 0) {
     printf("Bad input\n");
     return -1;
   }
@@ -206,20 +206,28 @@ int ftp_recv_resp(int socket, char* buffer, int len) {
 }
 
 
-void download_file(int socket, char* filename) {
+int download_file(int socket, char* filename) {
   int fd = open(filename, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO );
+  if (fd < 1) {
+    printf("Fail openning file\n");
+    return -1;
+  }
   char buf[1];
   while (true) {
     int ret = recv(socket, buf, 1, 0);
     if (ret < 0) {
       printf("Fail to recv from socket\n");
-      return;
+      return -1;
     } else if (ret == 0) {
      break;
     }
     write(fd, buf, ret);
   }
-  close(fd);
+  if (close(fd) < 0) {
+    printf("Fail closing file\n");
+    return -1;
+  }
+  return 0;
 }
 
 int main(int argc, char** argv) {
@@ -250,7 +258,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  sprintf(cmd, "PASS %s\r\n", args.user);
+  sprintf(cmd, "PASS %s\r\n", args.pass);
   printf("\nSending to control Socket...\n> %s\n", cmd);
   ftp_send_cmd(term_A, cmd);
   printf("Receiving from control Socket...\n");
@@ -288,8 +296,11 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  printf("\nDownloading...\n");
   download_file(term_B, args.filename);
-  
+  printf("Download complete!\n\n");
+
+  printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_TRSF_COMP) {
     fprintf(stderr, "Error completing transfer\n");
     return -1;

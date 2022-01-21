@@ -29,4 +29,4 @@ int disconnect_socket(int sockfd);
 int hostname_to_IP(char* hostname, char* ip);
 int ftp_send_cmd(int socket, char* cmd);
 int ftp_recv_resp(int socket, char* buffer, int len);
-void download_file(int socket, char* filename);
+int download_file(int socket, char* filename);
