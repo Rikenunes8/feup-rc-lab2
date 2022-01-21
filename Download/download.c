@@ -129,7 +129,7 @@ int connect_socket(char* addr, int port) {
   bzero((char *) &server_addr, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = inet_addr(addr);    /*32 bit Internet address network byte ordered*/
-  server_addr.sin_port = htons(port);        /*server TCP port must be network byte ordered */
+  server_addr.sin_port = htons(port);               /*server TCP port must be network byte ordered */
 
   /*open a TCP socket*/
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -141,6 +141,7 @@ int connect_socket(char* addr, int port) {
   int res = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr));
   if (res < 0) {
     perror("connect()");
+    disconnect_socket(sockfd);
     exit(-1);
   }
   return sockfd;
@@ -149,7 +150,7 @@ int connect_socket(char* addr, int port) {
 int disconnect_socket(int sockfd) {
   if (close(sockfd)<0) {
     perror("close()");
-    exit(-1);
+    return -1;
   }
   return 0;
 }
@@ -180,9 +181,9 @@ int ftp_send_cmd(int socket, char* cmd) {
 }
 
 int ftp_recv_resp(int socket, char* buffer, int len) {
-  char code[3];
+  char code[4];
   memset(buffer, 0, len);
-  memset(code, 0, 3);
+  memset(code, 0, 4);
   int off = 0;
   while (len != off) {
     int ret = recv(socket, &buffer[off], len-off, 0);
@@ -201,13 +202,13 @@ int ftp_recv_resp(int socket, char* buffer, int len) {
     off += ret;
   }
   printf("%s", buffer);
-
+  code[4] = 0;
   return atoi(code);
 }
 
 
 int download_file(int socket, char* filename) {
-  int fd = open(filename, O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO );
+  int fd = open(filename, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP );
   if (fd < 1) {
     printf("Fail openning file\n");
     return -1;
@@ -246,6 +247,7 @@ int main(int argc, char** argv) {
   int term_A = connect_socket(args.ip, args.port);
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_WELCOME) {
     fprintf(stderr, "Error on connection\n");
+    disconnect_socket(term_A);
     return -1;
   }
 
@@ -255,6 +257,7 @@ int main(int argc, char** argv) {
   printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SPEC_PASS) {
     fprintf(stderr, "Error setting User\n");
+    disconnect_socket(term_A);
     return -1;
   }
 
@@ -264,6 +267,7 @@ int main(int argc, char** argv) {
   printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_SUC_LOGIN) {
     fprintf(stderr, "Error setting Pass\n");
+    disconnect_socket(term_A);
     return -1;
   }
 
@@ -273,6 +277,7 @@ int main(int argc, char** argv) {
   printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_PASV_MODE) {
     fprintf(stderr, "Error entering pasv mode\n");
+    disconnect_socket(term_A);
     return -1;
   }
 
@@ -293,6 +298,8 @@ int main(int argc, char** argv) {
   printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_BIN_MODE) {
     fprintf(stderr, "Error opening BINARY mode data connection\n");
+    disconnect_socket(term_A);
+    disconnect_socket(term_B);
     return -1;
   }
 
@@ -303,6 +310,19 @@ int main(int argc, char** argv) {
   printf("Receiving from control Socket...\n");
   if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_TRSF_COMP) {
     fprintf(stderr, "Error completing transfer\n");
+    disconnect_socket(term_A);
+    disconnect_socket(term_B);
+    return -1;
+  }
+
+  sprintf(cmd, "QUIT\r\n");
+  printf("\nSending to control Socket...\n> %s\n", cmd);
+  ftp_send_cmd(term_A, cmd);
+  printf("Receiving from control Socket...\n");
+  if (ftp_recv_resp(term_A, res, MAX_RESP_SIZE) != RESP_GDBY) {
+    fprintf(stderr, "Error quiting\n");
+    disconnect_socket(term_A);
+    disconnect_socket(term_B);
     return -1;
   }
 

@@ -9,6 +9,7 @@
 #define RESP_PASV_MODE  227
 #define RESP_BIN_MODE   150
 #define RESP_TRSF_COMP  226
+#define RESP_GDBY       221
 
 struct args_t {
   char protocol[100];
